@@ -412,12 +412,15 @@
         }
         
         function testWebSocket(protocol) {
-            const url = document.getElementById('websocketUrl').value.trim();
+            let url = document.getElementById('websocketUrl').value.trim();
             
             if (!url) {
                 addLog('請輸入 WebSocket 伺服器網址', 'error');
                 return;
             }
+            
+            // 自動移除用戶輸入的協議前綴（避免重複）
+            url = url.replace(/^wss?:\/\//i, '');
             
             // 關閉之前的連線
             if (currentSocket) {
