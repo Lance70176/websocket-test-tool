@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 連線測試工具 | WebSocket Test Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #11998e;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn-ws {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-wss {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-clear:hover {
+            background: #5a6268;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .status-connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-closed {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-connecting .dot {
+            background: #856404;
+        }
+        
+        .status-connected .dot {
+            background: #28a745;
+            animation: none;
+        }
+        
+        .status-error .dot {
+            background: #dc3545;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .results-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .log-icon {
+            font-size: 16px;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .log-content {
+            flex: 1;
+        }
+        
+        .log-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        
+        .log-success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        
+        .log-error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .log-info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .log-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .connection-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .info-box label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .info-box value {
+            display: block;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            font-family: monospace;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .connection-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 WebSocket 連線測試工具</h1>
+            <p>WebSocket Test Tool - 快速測試 WS/WSS 連線</p>
+        </header>
+        
+        <div class="card">
+            <h2>連線設定</h2>
+            
+            <div class="input-group">
+                <label for="websocketUrl">WebSocket 伺服器網址</label>
+                <input type="text" id="websocketUrl" placeholder="example.com:8080 或 ws.example.com" value="">
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-ws" onclick="testWebSocket('ws')">
+                    📡 測試 WS 連線
+                </button>
+                <button class="btn btn-wss" onclick="testWebSocket('wss')">
+                    🔒 測試 WSS 連線
+                </button>
+                <button class="btn btn-clear" onclick="clearResults()">
+                    🗑️ 清除結果
+                </button>
+            </div>
+        </div>
+        
+        <div class="card" id="connectionCard" style="display: none;">
+            <h2>連線狀態</h2>
+            <div class="connection-info">
+                <div class="info-box">
+                    <label>協議</label>
+                    <value id="connProtocol">-</value>
+                </div>
+                <div class="info-box">
+                    <label>狀態</label>
+                    <value id="connStatus">-</value>
+                </div>
+                <div class="info-box">
+                    <label>連線時間</label>
+                    <value id="connTime">-</value>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>測試日誌</h2>
+            <div class="results-container" id="logContainer">
+                <div class="log-entry log-info">
+                    <span class="log-icon">💡</span>
+                    <div class="log-content">
+                        <div>輸入 WebSocket 伺服器網址，點擊測試按鈕開始連線</div>
+                        <div class="log-time">系統就緒</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2026 WebSocket Test Tool | 純前端測試，資料不會傳送到伺服器</p>
+        </footer>
+    </div>
+
+    <script>
+        let currentSocket = null;
+        let connectionStartTime = null;
+        
+        function addLog(message, type = 'info', details = '') {
+            const container = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString('zh-TW');
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️',
+                warning: '⚠️'
+            };
+            
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `
+                <span class="log-icon">${icons[type] || 'ℹ️'}</span>
+                <div class="log-content">
+                    <div>${message}</div>
+                    ${details ? `<div style="margin-top: 5px; opacity: 0.8;">${details}</div>` : ''}
+                    <div class="log-time">${timestamp}</div>
+                </div>
+            `;
+            
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function clearResults() {
+            document.getElementById('logContainer').innerHTML = `
+                <div class="log-entry log-info">
+                    <span class="log-icon">💡</span>
+                    <div class="log-content">
+                        <div>輸入 WebSocket 伺服器網址，點擊測試按鈕開始連線</div>
+                        <div class="log-time">已清除</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('connectionCard').style.display = 'none';
+            
+            if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
+                currentSocket.close();
+            }
+        }
+        
+        function updateConnectionInfo(protocol, status, time) {
+            document.getElementById('connectionCard').style.display = 'block';
+            document.getElementById('connProtocol').textContent = protocol || '-';
+            document.getElementById('connStatus').textContent = status || '-';
+            document.getElementById('connTime').textContent = time || '-';
+        }
+        
+        function testWebSocket(protocol) {
+            const url = document.getElementById('websocketUrl').value.trim();
+            
+            if (!url) {
+                addLog('請輸入 WebSocket 伺服器網址', 'error');
+                return;
+            }
+            
+            // 關閉之前的連線
+            if (currentSocket) {
+                currentSocket.close();
+            }
+            
+            const fullUrl = `${protocol}://${url}`;
+            connectionStartTime = performance.now();
+            
+            addLog(`開始測試 ${protocol.toUpperCase()} 連線`, 'info', fullUrl);
+            updateConnectionInfo(protocol.toUpperCase(), '連線中...', '-');
+            
+            try {
+                currentSocket = new WebSocket(fullUrl);
+                
+                currentSocket.onopen = function(event) {
+                    const connectTime = (performance.now() - connectionStartTime).toFixed(2);
+                    addLog(`${protocol.toUpperCase()} 連線成功`, 'success', `連線時間: ${connectTime}ms`);
+                    updateConnectionInfo(protocol.toUpperCase(), '已連線', `${connectTime}ms`);
+                    
+                    // 發送測試訊息
+                    setTimeout(() => {
+                        if (currentSocket.readyState === WebSocket.OPEN) {
+                            currentSocket.send('ping');
+                            addLog('發送測試訊息', 'info', 'ping');
+                        }
+                    }, 500);
+                };
+                
+                currentSocket.onmessage = function(event) {
+                    addLog('收到伺服器回應', 'success', `內容: ${event.data}`);
+                };
+                
+                currentSocket.onerror = function(error) {
+                    addLog(`${protocol.toUpperCase()} 連線錯誤`, 'error', '請檢查網址是否正確或伺服器是否運作中');
+                    updateConnectionInfo(protocol.toUpperCase(), '錯誤', '-');
+                };
+                
+                currentSocket.onclose = function(event) {
+                    const totalTime = (performance.now() - connectionStartTime).toFixed(2);
+                    
+                    if (event.wasClean) {
+                        addLog(`${protocol.toUpperCase()} 連線已關閉`, 'info', `代碼: ${event.code}, 總時間: ${totalTime}ms`);
+                        updateConnectionInfo(protocol.toUpperCase(), '已關閉', `${totalTime}ms`);
+                    } else {
+                        addLog(`${protocol.toUpperCase()} 連線異常關閉`, 'warning', `代碼: ${event.code}, 總時間: ${totalTime}ms`);
+                        updateConnectionInfo(protocol.toUpperCase(), '異常關閉', `${totalTime}ms`);
+                    }
+                    
+                    if (event.reason) {
+                        addLog('關閉原因', 'info', event.reason);
+                    }
+                };
+                
+                // 10秒後自動關閉
+                setTimeout(() => {
+                    if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
+                        addLog('測試完成，自動關閉連線', 'info');
+                        currentSocket.close(1000, '測試完成');
+                    }
+                }, 10000);
+                
+            } catch (error) {
+                addLog('連線異常', 'error', error.message);
+                updateConnectionInfo(protocol.toUpperCase(), '異常', '-');
+            }
+        }
+        
+        // Enter 鍵觸發測試
+        document.getElementById('websocketUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testWebSocket('wss');
+            }
+        });
+    </script>
+</body>
+</html>
